@@ -12,6 +12,7 @@ import {
   ActivityIndicator,
   Animated,
 } from "react-native";
+import { Stack } from "expo-router";
 import { useTheme } from "../context/ThemeContext";
 import { StatusBar } from "expo-status-bar";
 import ActionBar from "../components/ActionBar";
@@ -120,6 +121,16 @@ export default function HomeScreen() {
 
   return (
     <View style={[styles.container, { backgroundColor: theme.background }]}>
+      <Stack.Screen
+        options={{
+          // Adding options to control the transition
+          headerShown: false, // Hide header to use our custom one
+          contentStyle: {
+            backgroundColor: theme.background,
+          },
+        }}
+      />
+
       <StatusBar style={isLightMode ? "dark" : "light"} />
 
       {/* Fixed Header */}

@@ -177,9 +177,19 @@ export default function BookDetailScreen() {
               <Ionicons name="chevron-back" size={24} color={theme.text} />
             </TouchableOpacity>
           ),
+          // Fix the transition animations
           animation: "slide_from_right",
-          presentation: "card",
-          contentStyle: { backgroundColor: theme.background },
+          animationDuration: 300,
+          // These options prevent the screen from disappearing during animation
+          presentation: "transparentModal", // Changed from "card" to maintain background
+          contentStyle: {
+            backgroundColor: theme.background,
+          },
+          // Ensure content stays visible during transitions
+          detachPreviousScreen: false,
+          // Make sure iOS gestures don't cause the white flash
+          gestureEnabled: true,
+          gestureDirection: "horizontal",
         }}
       />
 

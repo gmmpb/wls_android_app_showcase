@@ -42,7 +42,7 @@ const darkTheme = {
   textSecondary: "#B0B0B0",
 };
 
-export default function Layout() {
+export default function RootLayout() {
   const colorScheme = useColorScheme();
   const [theme, setTheme] = useState(
     colorScheme === "dark" ? darkTheme : lightTheme
@@ -55,21 +55,21 @@ export default function Layout() {
 
   return (
     <ThemeProvider theme={theme} setTheme={setTheme}>
-      <StatusBar style={colorScheme === "dark" ? "light" : "dark"} />
+      <StatusBar style="auto" />
       <Stack
         screenOptions={{
-          headerStyle: {
-            backgroundColor: theme.background,
-          },
-          headerTintColor: theme.text,
-          headerTitleStyle: {
-            fontFamily: "Poppins-Medium", // Primary font
-          },
-          contentStyle: {
-            backgroundColor: theme.background,
-          },
-          // Smooth transitions between screens
           animation: "slide_from_right",
+          presentation: "transparentModal", // Changed from "card"
+          animationDuration: 300,
+          // This helps maintain backgrounds during transitions
+          contentStyle: {
+            backgroundColor: "#FFFFFF", // Default fallback
+          },
+          // These settings keep screens visible during transitions
+          detachPreviousScreen: false,
+          headerTransparent: true,
+          gestureEnabled: true,
+          gestureDirection: "horizontal",
         }}
       >
         <Stack.Screen
