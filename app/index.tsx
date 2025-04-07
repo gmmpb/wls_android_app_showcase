@@ -15,6 +15,8 @@ import {
 import { Stack } from "expo-router";
 import { useTheme } from "../context/ThemeContext";
 import { StatusBar } from "expo-status-bar";
+// @ts-ignore
+import { useFocusEffect } from "@react-navigation/native";
 import ActionBar from "../components/ActionBar";
 import Categories from "../components/Categories";
 import BookList from "../components/BookList";
@@ -84,6 +86,19 @@ export default function HomeScreen() {
       setRefreshing(false);
     }
   }, [refreshing]);
+
+  // Add useFocusEffect to refresh library when screen comes into focus
+  useFocusEffect(
+    useCallback(() => {
+      // This will run when the screen comes into focus (like when navigating back from upload or book detail)
+      console.log("Home screen in focus - refreshing library");
+      loadBooks();
+
+      return () => {
+        // Optional cleanup function
+      };
+    }, [loadBooks])
+  );
 
   // Effect to load books when component mounts or refresh is triggered
   useEffect(() => {

@@ -91,7 +91,6 @@ function BookReader() {
     const bookMeta = await getMetaFromAsyncStorage(id as string);
     const lastLocation = bookMeta?.cfi;
     if (lastLocation) {
-      console.log("Book metadata:!!!!", bookMeta);
       goToLocation(String(lastLocation));
     }
   };

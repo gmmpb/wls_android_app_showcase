@@ -130,13 +130,11 @@ export const updateReadingProgress = async (
   const bookIndex: number = library.books.findIndex(
     (book: BookMetadata) => book.id === id
   );
-  console.log("Book index:", cfi);
-  if (bookIndex !== -1) {
+  if (library.books[bookIndex].currentPage < currentPage) {
     library.books[bookIndex].readingProgress = progress;
     library.books[bookIndex].lastRead = new Date().toISOString();
     library.books[bookIndex].currentPage = currentPage;
     library.books[bookIndex].cfi = cfi;
-    console.log("librarylibrarylibrarylibrary", library);
     await AsyncStorage.setItem("bookLibrary", JSON.stringify(library));
   }
 };

@@ -402,11 +402,12 @@ export default function UploadScreen() {
             style={[
               styles.submitButton,
               {
-                backgroundColor: selectedFile ? theme.primary : theme.surface,
-                opacity: selectedFile ? 1 : 0.6,
+                backgroundColor:
+                  selectedFile && metaData ? theme.primary : theme.surface,
+                opacity: selectedFile && metaData ? 1 : 0.6,
               },
             ]}
-            disabled={!selectedFile || isUploading}
+            disabled={!selectedFile || !metaData || isUploading}
             onPress={handleUpload}
           >
             {isUploading ? (
@@ -419,16 +420,27 @@ export default function UploadScreen() {
                 <Ionicons
                   name={selectedFile ? "library-outline" : "document-outline"}
                   size={20}
-                  color={selectedFile ? "#FFFFFF" : theme.textSecondary}
+                  color={
+                    selectedFile && metaData ? "#FFFFFF" : theme.textSecondary
+                  }
                   style={styles.buttonIcon}
                 />
                 <Text
                   style={[
                     styles.submitButtonText,
-                    { color: selectedFile ? "#FFFFFF" : theme.textSecondary },
+                    {
+                      color:
+                        selectedFile && metaData
+                          ? "#FFFFFF"
+                          : theme.textSecondary,
+                    },
                   ]}
                 >
-                  {selectedFile ? "Add to Library" : "Select a File"}
+                  {selectedFile
+                    ? metaData
+                      ? "Add to Library"
+                      : "Loading metadata..."
+                    : "Select a File"}
                 </Text>
               </>
             )}
@@ -496,6 +508,7 @@ const { width } = Dimensions.get("window");
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+    paddingTop: 60, // Adding top padding to the entire container
   },
   hiddenReader: {
     width: 1,
@@ -509,7 +522,7 @@ const styles = StyleSheet.create({
   scrollContent: {
     flexGrow: 1,
     paddingHorizontal: 16,
-    paddingTop: 8,
+    paddingTop: 24, // Already increased from 8 to 24 for more top padding
     paddingBottom: 80,
   },
   uploadArea: {
