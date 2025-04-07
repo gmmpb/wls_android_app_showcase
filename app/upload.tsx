@@ -54,6 +54,8 @@ export default function UploadScreen() {
 
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const scaleAnim = useRef(new Animated.Value(0.95)).current;
+  const { totalLocations } = useReader();
+  const locations = totalLocations;
 
   useEffect(() => {
     Animated.parallel([
@@ -127,6 +129,8 @@ export default function UploadScreen() {
       const book = await addBookToLibrary(selectedFile.uri, selectedFile.size, {
         ...metaData,
         categories: selectedCategories,
+        totalPages: locations,
+        currentPage: 0,
       });
 
       setSavedBook(book);
@@ -449,8 +453,7 @@ function BookMetadataExtractor({ src, onMetadataExtracted, onError }: any) {
     const timer = setTimeout(() => {
       try {
         const metadata = getMeta();
-        console.log(`Attempt ${attempts + 1} - Extracted metadata:`, metadata);
-
+        // console.log(`Attempt ${attempts + 1} - Extracted metadata:`, metadata);
         if (
           (metadata.title || metadata.author || metadata.cover) &&
           (metadata.title !== "" || metadata.cover)

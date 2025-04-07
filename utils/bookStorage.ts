@@ -82,6 +82,9 @@ export const addBookToLibrary = async (
     dateAdded: new Date().toISOString(),
     readingProgress: 0,
     categories: metadata.categories || [],
+    totalPages: metadata.totalPages || 0,
+    currentPage: metadata.currentPage || 0,
+    cfi: metadata.cfi || "",
   };
 
   // Get current library
@@ -90,7 +93,8 @@ export const addBookToLibrary = async (
 
   // Add the new book
   library.books.push(bookData);
-
+  console.log("Library after adding book:", library);
+  console.log("Book data:", bookData);
   // Save updated library
   await AsyncStorage.setItem("bookLibrary", JSON.stringify(library));
 
@@ -115,19 +119,23 @@ export const getBookById = async (id: string): Promise<BookMetadata | null> => {
 // Update a book's reading progress
 export const updateReadingProgress = async (
   id: string,
-  progress: number
+  progress: number,
+  currentPage: number,
+  cfi: string
 ): Promise<void> => {
   const libraryJson = await AsyncStorage.getItem("bookLibrary");
   if (!libraryJson) return;
-
   const library = JSON.parse(libraryJson);
   const bookIndex: number = library.books.findIndex(
     (book: BookMetadata) => book.id === id
   );
-
+  console.log("Book index:", cfi);
   if (bookIndex !== -1) {
     library.books[bookIndex].readingProgress = progress;
     library.books[bookIndex].lastRead = new Date().toISOString();
+    library.books[bookIndex].currentPage = currentPage;
+    library.books[bookIndex].cfi = cfi;
+    console.log("librarylibrarylibrarylibrary", library);
     await AsyncStorage.setItem("bookLibrary", JSON.stringify(library));
   }
 };
@@ -263,4 +271,15 @@ export const getLibraryWithCovers = async (): Promise<
   );
 
   return booksWithCovers;
+};
+
+export const getMetaFromAsyncStorage = async (
+  id: string
+): Promise<BookMetadata | null> => {
+  const libraryJson = await AsyncStorage.getItem("bookLibrary");
+  if (!libraryJson) return null;
+  const library = JSON.parse(libraryJson);
+  const book = library.books.find((book: BookMetadata) => book.id === id);
+
+  return book || null;
 };

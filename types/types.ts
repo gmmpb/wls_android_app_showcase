@@ -57,6 +57,9 @@ export interface BookMetadata {
   lastRead?: string;
   readingProgress?: number;
   categories?: string[];
+  totalPages?: number;
+  currentPage?: number;
+  cfi?: string;
 }
 
 export interface Metadata {
@@ -67,4 +70,6 @@ export interface Metadata {
   publisher?: string;
   rights?: string;
   description?: string;
+  totalPages?: number;
+  currentPage?: number;
 }
