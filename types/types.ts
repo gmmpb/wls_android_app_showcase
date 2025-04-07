@@ -12,6 +12,7 @@ export interface Book {
   description?: string;
   categories?: string[];
 }
+
 export interface BookDisplayData {
   id: string;
   title: string;
@@ -40,6 +41,7 @@ export interface BookItemProps {
   };
   index?: number; // Optional index prop for list view
 }
+
 export interface BookMetadata {
   id: string;
   title: string;
@@ -55,4 +57,14 @@ export interface BookMetadata {
   lastRead?: string;
   readingProgress?: number;
   categories?: string[];
+}
+
+export interface Metadata {
+  title?: string;
+  author?: string;
+  cover?: string;
+  language?: string;
+  publisher?: string;
+  rights?: string;
+  description?: string;
 }

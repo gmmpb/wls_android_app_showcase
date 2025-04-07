@@ -20,12 +20,9 @@ import { Reader, useReader, ReaderProvider } from "@epubjs-react-native/core";
 import { useFileSystem } from "@epubjs-react-native/expo-file-system";
 import * as Haptics from "expo-haptics";
 import { BlurView } from "expo-blur";
-import {
-  initializeStorage,
-  addBookToLibrary,
-  BookMetadata,
-} from "../utils/bookStorage";
+import { initializeStorage, addBookToLibrary } from "../utils/bookStorage";
 import CategorySelector from "../components/CategorySelector";
+import { BookMetadata, Metadata } from "@/types/types";
 
 const categories = [
   { id: "all", label: "All Books" },
@@ -36,26 +33,16 @@ const categories = [
   { id: "fiction", label: "Fiction" },
   { id: "non-fiction", label: "Non-Fiction" },
 ];
-
+interface SelectedFile {
+  uri: string;
+  name: string;
+  size: number;
+}
 export default function UploadScreen() {
   const { theme, isLightMode } = useTheme();
   const [isUploading, setIsUploading] = useState(false);
-  interface SelectedFile {
-    uri: string;
-    name: string;
-    size: number;
-  }
 
   const [selectedFile, setSelectedFile] = useState<SelectedFile | null>(null);
-  interface Metadata {
-    title?: string;
-    author?: string;
-    cover?: string;
-    language?: string;
-    publisher?: string;
-    rights?: string;
-    description?: string;
-  }
 
   const [metaData, setMetaData] = useState<Metadata | null>(null);
   const [error, setError] = useState("");
