@@ -54,9 +54,6 @@ export default function UploadScreen() {
 
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const scaleAnim = useRef(new Animated.Value(0.95)).current;
-  const { totalLocations } = useReader();
-  const locations = totalLocations;
-
   useEffect(() => {
     Animated.parallel([
       Animated.timing(fadeAnim, {
@@ -129,7 +126,6 @@ export default function UploadScreen() {
       const book = await addBookToLibrary(selectedFile.uri, selectedFile.size, {
         ...metaData,
         categories: selectedCategories,
-        totalPages: locations,
         currentPage: 0,
       });
 
@@ -445,10 +441,10 @@ export default function UploadScreen() {
 
 // Helper component to extract EPUB metadata
 function BookMetadataExtractor({ src, onMetadataExtracted, onError }: any) {
-  const { getMeta } = useReader();
+  const { getMeta, totalLocations } = useReader();
   const [attempts, setAttempts] = useState(0);
   const MAX_ATTEMPTS = 5;
-
+  console.log("BookMetadataExtractor mounted", totalLocations);
   useEffect(() => {
     const timer = setTimeout(() => {
       try {
@@ -458,7 +454,7 @@ function BookMetadataExtractor({ src, onMetadataExtracted, onError }: any) {
           (metadata.title || metadata.author || metadata.cover) &&
           (metadata.title !== "" || metadata.cover)
         ) {
-          onMetadataExtracted(metadata);
+          onMetadataExtracted({ ...metadata, totalLocations });
         } else if (attempts < MAX_ATTEMPTS) {
           setAttempts(attempts + 1);
         } else {

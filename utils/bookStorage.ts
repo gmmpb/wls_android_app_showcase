@@ -60,6 +60,7 @@ export const addBookToLibrary = async (
 ): Promise<BookMetadata> => {
   // Save the EPUB file
   const savedFilePath = await saveEpubFile(fileUri);
+  console.log("Book metadata:", metadata);
 
   // Save the cover image if available
   let coverPath = null;
@@ -82,7 +83,7 @@ export const addBookToLibrary = async (
     dateAdded: new Date().toISOString(),
     readingProgress: 0,
     categories: metadata.categories || [],
-    totalPages: metadata.totalPages || 0,
+    totalPages: metadata.totalLocations || 0,
     currentPage: metadata.currentPage || 0,
     cfi: metadata.cfi || "",
   };
