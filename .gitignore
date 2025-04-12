@@ -2,7 +2,7 @@
 
 # dependencies
 node_modules/
-
+andoid/
 # Expo
 .expo/
 dist/
