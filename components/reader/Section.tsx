@@ -3,6 +3,7 @@ import React from "react";
 import { StyleSheet, TouchableOpacity, View } from "react-native";
 import { Text } from "react-native-paper";
 import { Ionicons } from "@expo/vector-icons";
+import { useTheme } from "../../context/ThemeContext";
 
 interface Props {
   searchTerm: string;
@@ -19,15 +20,23 @@ function Section({
   onPress,
   theme,
 }: Props) {
+  const { isLightMode } = useTheme();
   const regex = new RegExp(`(${searchTerm})`, "gi");
   const parts = section?.label.split(regex);
+
+  // Always use light text in dark mode for better readability in table of contents
+  const textColor = isLightMode
+    ? isCurrentSection
+      ? theme.primary
+      : theme.text
+    : "#FFFFFF";
 
   return (
     <TouchableOpacity
       key={section.id}
       style={[
         styles.container,
-        isCurrentSection && { backgroundColor: theme.primary + "10" },
+        isCurrentSection && { backgroundColor: theme.primary + "20" },
       ]}
       onPress={() => onPress(section)}
       activeOpacity={0.6}
@@ -37,33 +46,29 @@ function Section({
           <Ionicons
             name={isCurrentSection ? "bookmark" : "bookmark-outline"}
             size={18}
-            color={isCurrentSection ? theme.primary : theme.textSecondary}
+            color={
+              isCurrentSection
+                ? theme.primary
+                : isLightMode
+                ? theme.textSecondary
+                : "#DDDDDD"
+            }
           />
         </View>
 
         <View style={styles.textContainer}>
           {!searchTerm && (
-            <Text
-              style={[
-                styles.title,
-                { color: isCurrentSection ? theme.primary : theme.text },
-              ]}
-            >
+            <Text style={[styles.title, { color: textColor }]}>
               {section?.label}
             </Text>
           )}
 
           {searchTerm && (
-            <Text
-              style={[
-                styles.title,
-                { color: isCurrentSection ? theme.primary : theme.text },
-              ]}
-            >
+            <Text style={[styles.title, { color: textColor }]}>
               {parts.filter(String).map((part, index) => {
                 return regex.test(part) ? (
                   <Text
-                    style={styles.highlight}
+                    style={[styles.highlight, { color: theme.text }]}
                     key={`${index}-part-highlight`}
                   >
                     {part}

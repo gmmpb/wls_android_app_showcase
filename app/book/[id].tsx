@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import {
   View,
   TouchableOpacity,
@@ -8,7 +8,12 @@ import {
   Text,
   StyleSheet,
 } from "react-native";
-import { Stack, useLocalSearchParams, router } from "expo-router";
+import {
+  Stack,
+  useLocalSearchParams,
+  router,
+  useFocusEffect,
+} from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { useTheme } from "../../context/ThemeContext";
 import * as Haptics from "expo-haptics";
@@ -22,7 +27,6 @@ import { Book } from "@/types/types";
 
 // Import components
 import BookHero from "../../components/book-details/BookHero";
-import BookActions from "../../components/book-details/BookActions";
 import BookMetadata from "../../components/book-details/BookMetadata";
 import BookCategories from "../../components/book-details/BookCategories";
 import BookDescription from "../../components/book-details/BookDescription";
@@ -37,33 +41,46 @@ export default function BookDetailScreen() {
   const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
   const [isSaving, setIsSaving] = useState(false);
 
-  useEffect(() => {
-    async function loadBook() {
-      try {
-        setLoading(true);
-        const bookData = await getBookById(id as string);
-        if (!bookData) {
-          Alert.alert("Error", "Book not found");
-          router.back();
-          return;
-        }
-
-        setBook(bookData);
-        setSelectedCategories(bookData.categories || []);
-
-        // Load cover image
-        const cover = await getBookCover(id as string);
-        setCoverImage(cover);
-      } catch (error) {
-        console.error("Error loading book details:", error);
-        Alert.alert("Error", "Failed to load book details");
-      } finally {
-        setLoading(false);
+  // Load book data - extracted to a function so we can call it when the screen is focused
+  const loadBookData = useCallback(async () => {
+    try {
+      setLoading(true);
+      const bookData = await getBookById(id as string);
+      if (!bookData) {
+        Alert.alert("Error", "Book not found");
+        router.back();
+        return;
       }
-    }
 
-    loadBook();
+      setBook(bookData);
+      setSelectedCategories(bookData.categories || []);
+
+      // Load cover image
+      const cover = await getBookCover(id as string);
+      setCoverImage(cover);
+    } catch (error) {
+      console.error("Error loading book details:", error);
+      Alert.alert("Error", "Failed to load book details");
+    } finally {
+      setLoading(false);
+    }
   }, [id]);
+
+  // Initial load
+  useEffect(() => {
+    loadBookData();
+  }, [loadBookData]);
+
+  // Refresh data when the screen comes into focus (e.g., when returning from reader)
+  useFocusEffect(
+    useCallback(() => {
+      console.log("Book detail screen focused - refreshing data");
+      loadBookData();
+      return () => {
+        // Optional cleanup
+      };
+    }, [loadBookData])
+  );
 
   const handleToggleCategory = (categoryId: string) => {
     setSelectedCategories((prev) => {
@@ -125,15 +142,6 @@ export default function BookDetailScreen() {
     );
   };
 
-  const handleReadBook = () => {
-    if (book) {
-      router.push({
-        pathname: "../reader/[id]",
-        params: { id: book.id },
-      });
-    }
-  };
-
   const handleNavBack = () => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     router.back();
@@ -177,17 +185,13 @@ export default function BookDetailScreen() {
               <Ionicons name="chevron-back" size={24} color={theme.text} />
             </TouchableOpacity>
           ),
-          // Fix the transition animations
           animation: "slide_from_right",
           animationDuration: 300,
-          // These options prevent the screen from disappearing during animation
-          presentation: "transparentModal", // Changed from "card" to maintain background
+          presentation: "transparentModal",
           contentStyle: {
             backgroundColor: theme.background,
           },
-          // Ensure content stays visible during transitions
           detachPreviousScreen: false,
-          // Make sure iOS gestures don't cause the white flash
           gestureEnabled: true,
           gestureDirection: "horizontal",
         }}
@@ -199,12 +203,7 @@ export default function BookDetailScreen() {
           author={book.author}
           coverImage={coverImage}
           progress={book.readingProgress || 0}
-          theme={theme}
-        />
-
-        <BookActions
-          onRead={handleReadBook}
-          onDelete={handleDeleteBook}
+          bookId={book.id}
           theme={theme}
         />
 
@@ -221,6 +220,24 @@ export default function BookDetailScreen() {
         {book.description && (
           <BookDescription description={book.description} theme={theme} />
         )}
+
+        <View style={styles.dangerZone}>
+          <TouchableOpacity
+            style={[
+              styles.deleteButton,
+              { backgroundColor: theme.error || "#ff4444" },
+            ]}
+            onPress={handleDeleteBook}
+          >
+            <Ionicons
+              name="trash-outline"
+              size={20}
+              color="#FFFFFF"
+              style={styles.deleteIcon}
+            />
+            <Text style={styles.deleteButtonText}>Delete Book</Text>
+          </TouchableOpacity>
+        </View>
       </ScrollView>
     </View>
   );
@@ -251,5 +268,24 @@ const styles = StyleSheet.create({
   backButton: {
     paddingHorizontal: 12,
     paddingVertical: 6,
+  },
+  dangerZone: {
+    marginTop: 20,
+    paddingHorizontal: 20,
+  },
+  deleteButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    paddingVertical: 10,
+    borderRadius: 5,
+  },
+  deleteIcon: {
+    marginRight: 10,
+  },
+  deleteButtonText: {
+    color: "#FFFFFF",
+    fontSize: 16,
+    fontFamily: "Poppins-Medium",
   },
 });

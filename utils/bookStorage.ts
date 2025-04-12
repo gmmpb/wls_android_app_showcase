@@ -122,20 +122,42 @@ export const updateReadingProgress = async (
   id: string,
   progress: number,
   currentPage: number,
-  cfi: string
+  cfi: string,
+  forwardOnly: boolean = true
 ): Promise<void> => {
-  const libraryJson = await AsyncStorage.getItem("bookLibrary");
-  if (!libraryJson) return;
-  const library = JSON.parse(libraryJson);
-  const bookIndex: number = library.books.findIndex(
-    (book: BookMetadata) => book.id === id
-  );
-  if (library.books[bookIndex].currentPage < currentPage) {
-    library.books[bookIndex].readingProgress = progress;
-    library.books[bookIndex].lastRead = new Date().toISOString();
-    library.books[bookIndex].currentPage = currentPage;
+  try {
+    const libraryJson = await AsyncStorage.getItem("bookLibrary");
+    if (!libraryJson) return;
+
+    const library = JSON.parse(libraryJson);
+    const bookIndex: number = library.books.findIndex(
+      (book: BookMetadata) => book.id === id
+    );
+
+    if (bookIndex === -1) return;
+
+    // Always update the CFI (location in the book)
     library.books[bookIndex].cfi = cfi;
+
+    // Always update lastRead timestamp when the user is reading
+    library.books[bookIndex].lastRead = new Date().toISOString();
+
+    // Update progress and currentPage based on forwardOnly flag
+    const currentStoredPage = library.books[bookIndex].currentPage || 0;
+
+    if (
+      !forwardOnly ||
+      currentPage > currentStoredPage ||
+      currentStoredPage === 0
+    ) {
+      // Update progress and current page either when moving forward or when forwardOnly is false
+      library.books[bookIndex].readingProgress = progress;
+      library.books[bookIndex].currentPage = currentPage;
+    }
+
     await AsyncStorage.setItem("bookLibrary", JSON.stringify(library));
+  } catch (error) {
+    console.error("Error updating reading progress:", error);
   }
 };
 

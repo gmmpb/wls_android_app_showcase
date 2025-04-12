@@ -7,19 +7,31 @@ import {
   Dimensions,
   TouchableOpacity,
 } from "react-native";
+import { Ionicons } from "@expo/vector-icons";
 import { router } from "expo-router";
 import { BookItemProps } from "@/types/types";
+import { useTheme } from "../context/ThemeContext";
 
 const fallbackImage = "https://via.placeholder.com/300x500?text=No+Image";
 
 const BookItem: React.FC<BookItemProps> = ({ book, index }) => {
   const [imageUri, setImageUri] = useState(book.coverImage);
+  const { theme } = useTheme();
 
   const handleImageError = () => {
     setImageUri(fallbackImage); // Use fallback image if the original fails
   };
 
-  const isCompleted = book.progress === 1;
+  // Interpret progress from 0-100 scale
+  const progressPercent =
+    typeof book.progress === "number"
+      ? book.progress > 1
+        ? book.progress
+        : Math.round(book.progress * 100)
+      : 0;
+
+  const isCompleted = progressPercent >= 100;
+  const inProgress = progressPercent > 0 && progressPercent < 100;
 
   const handlePress = () => {
     router.push({
@@ -30,7 +42,7 @@ const BookItem: React.FC<BookItemProps> = ({ book, index }) => {
 
   return (
     <TouchableOpacity
-      style={styles.gridItem}
+      style={[styles.gridItem, { backgroundColor: theme.surface }]}
       onPress={handlePress}
       activeOpacity={0.7}
     >
@@ -38,32 +50,82 @@ const BookItem: React.FC<BookItemProps> = ({ book, index }) => {
         <Image
           source={{ uri: imageUri }}
           style={styles.bookCover}
-          resizeMode="cover" // Ensure the image covers the container
-          onError={handleImageError} // Set fallback image on error
+          resizeMode="cover"
+          onError={handleImageError}
         />
+
+        {/* Status indicator */}
         {isCompleted ? (
-          <View style={styles.completedBadge}>
-            <Text style={styles.progressText}>✔</Text>
+          <View
+            style={[
+              styles.statusBadge,
+              { backgroundColor: theme.success || "#4CAF50" },
+            ]}
+          >
+            <Ionicons name="checkmark" size={16} color="#fff" />
           </View>
-        ) : (
+        ) : inProgress ? (
+          <View
+            style={[styles.statusBadge, { backgroundColor: theme.primary }]}
+          >
+            <Ionicons name="book" size={16} color="#fff" />
+          </View>
+        ) : null}
+
+        {/* Progress percentage */}
+        {inProgress && (
           <View style={styles.progressIndicator}>
-            <Text style={styles.progressText}>
-              {Math.round(book.progress * 100)}%
-            </Text>
+            <Text style={styles.progressText}>{progressPercent}%</Text>
           </View>
         )}
       </View>
+
       <View style={styles.bookInfo}>
-        <Text style={styles.title}>{book.title}</Text>
-        <Text style={styles.author}>{book.author}</Text>
-        <View style={styles.progressBar}>
+        <Text style={[styles.title, { color: theme.text }]} numberOfLines={1}>
+          {book.title}
+        </Text>
+
+        <Text
+          style={[styles.author, { color: theme.textSecondary }]}
+          numberOfLines={1}
+        >
+          {book.author}
+        </Text>
+
+        {/* Progress bar */}
+        <View
+          style={[
+            styles.progressBar,
+            { backgroundColor: theme.surface, borderColor: theme.border },
+          ]}
+        >
           <View
             style={[
               styles.progressFill,
-              { width: `${book.progress * 100}%`, backgroundColor: "#4CAF50" },
+              {
+                width: `${progressPercent}%`,
+                backgroundColor: isCompleted
+                  ? theme.success || "#4CAF50"
+                  : theme.primary || "#2196F3",
+              },
             ]}
           />
         </View>
+
+        {/* Last read info */}
+        {book.lastRead && book.lastRead !== "Never" && (
+          <View style={styles.lastReadContainer}>
+            <Ionicons
+              name="time-outline"
+              size={12}
+              color={theme.textSecondary}
+              style={styles.lastReadIcon}
+            />
+            <Text style={[styles.lastRead, { color: theme.textSecondary }]}>
+              {book.lastRead}
+            </Text>
+          </View>
+        )}
       </View>
     </TouchableOpacity>
   );
@@ -71,16 +133,15 @@ const BookItem: React.FC<BookItemProps> = ({ book, index }) => {
 
 const styles = StyleSheet.create({
   gridItem: {
-    margin: 4,
-    width: (Dimensions.get("window").width - 32) / 2,
-    borderRadius: 8,
+    margin: 8,
+    width: (Dimensions.get("window").width - 48) / 2,
+    borderRadius: 12,
     overflow: "hidden",
-    elevation: 1,
+    elevation: 3,
     shadowColor: "#000",
-    shadowOffset: { width: 0, height: 1 },
+    shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
-    shadowRadius: 1.5,
-    backgroundColor: "#fff",
+    shadowRadius: 3,
   },
   coverContainer: {
     position: "relative",
@@ -89,7 +150,7 @@ const styles = StyleSheet.create({
   bookCover: {
     width: "100%",
     height: "100%",
-    backgroundColor: "#f0f0f0", // Add a fallback background color
+    backgroundColor: "#f0f0f0", // Fallback background color
   },
   progressIndicator: {
     position: "absolute",
@@ -104,15 +165,15 @@ const styles = StyleSheet.create({
     color: "#fff",
     fontSize: 12,
     fontWeight: "600",
+    fontFamily: "Poppins-SemiBold",
   },
-  completedBadge: {
+  statusBadge: {
     position: "absolute",
     top: 8,
     right: 8,
-    backgroundColor: "#4CAF50",
-    width: 24,
-    height: 24,
-    borderRadius: 12,
+    width: 28,
+    height: 28,
+    borderRadius: 14,
     justifyContent: "center",
     alignItems: "center",
   },
@@ -121,10 +182,12 @@ const styles = StyleSheet.create({
   },
   progressBar: {
     height: 4,
-    borderRadius: 2,
-    marginTop: 10,
+    borderRadius: 4,
+    marginTop: 8,
     width: "100%",
     overflow: "hidden",
+    backgroundColor: "rgba(0,0,0,0.05)",
+    borderWidth: 0.5,
   },
   progressFill: {
     height: "100%",
@@ -138,86 +201,18 @@ const styles = StyleSheet.create({
   author: {
     fontSize: 13,
     fontFamily: "Poppins-Regular",
-    marginBottom: 6,
-  },
-  listItem: {
-    flexDirection: "row",
-    marginBottom: 8,
-    borderRadius: 8,
-    overflow: "hidden",
-    elevation: 1,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.1,
-    shadowRadius: 1.5,
-  },
-  listCover: {
-    width: 80,
-    height: "100%",
-    backgroundColor: "#f0f0f0", // Add a fallback background color
-  },
-  listDetails: {
-    flex: 1,
-    padding: 14,
-  },
-  listHeader: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "flex-start",
-    marginBottom: 2,
-  },
-  listTitle: {
-    fontSize: 16,
-    fontWeight: "600",
-    fontFamily: "Poppins-SemiBold",
-    flex: 1,
-  },
-  ratingContainer: {
-    flexDirection: "row",
-    alignItems: "center",
-    marginLeft: 6,
-  },
-  ratingText: {
-    fontSize: 12,
-    color: "#555",
-    fontWeight: "600",
-  },
-  listMeta: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    marginTop: 8,
-    marginBottom: 12,
-  },
-  genreContainer: {
-    flexDirection: "row",
-  },
-  genre: {
-    fontSize: 12,
-    fontFamily: "Poppins-Medium",
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 12,
-    overflow: "hidden",
-  },
-  statsContainer: {
-    flexDirection: "row",
-    alignItems: "center",
-  },
-  statText: {
-    fontSize: 12,
-    fontFamily: "Poppins-Regular",
-  },
-  progressSection: {
-    marginTop: 4,
+    marginBottom: 4,
   },
   lastReadContainer: {
     flexDirection: "row",
     alignItems: "center",
     marginTop: 8,
   },
+  lastReadIcon: {
+    marginRight: 4,
+  },
   lastRead: {
-    fontSize: 12,
+    fontSize: 11,
     fontFamily: "Poppins-Regular",
   },
 });
