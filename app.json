@@ -1,8 +1,8 @@
 {
   "expo": {
-    "scheme": "myapp",
+    "scheme": "nocturne",
     "newArchEnabled": true,
-    "name": "eBook Reader",
+    "name": "Nocturne",
     "slug": "ebook-reader",
     "version": "1.0.0",
     "orientation": "portrait",
@@ -13,9 +13,7 @@
       "resizeMode": "contain",
       "backgroundColor": "#ffffff"
     },
-    "assetBundlePatterns": [
-      "**/*"
-    ],
+    "assetBundlePatterns": ["**/*"],
     "ios": {
       "supportsTablet": true,
       "infoPlist": {
@@ -29,11 +27,6 @@
         "backgroundColor": "#ffffff"
       },
       "permissions": [
-        "android.permission.READ_EXTERNAL_STORAGE",
-        "android.permission.WRITE_EXTERNAL_STORAGE",
-        "android.permission.INTERNET",
-        "android.permission.DOWNLOAD_WITHOUT_NOTIFICATION",
-        "android.permission.ACCESS_NETWORK_STATE",
         "android.permission.READ_EXTERNAL_STORAGE",
         "android.permission.WRITE_EXTERNAL_STORAGE",
         "android.permission.INTERNET",
@@ -53,6 +46,11 @@
     ],
     "experiments": {
       "typedRoutes": true
+    },
+    "extra": {
+      "eas": {
+        "projectId": "b2c49bdb-88fd-4a3d-be60-987b5c71588e"
+      }
     }
   }
 }

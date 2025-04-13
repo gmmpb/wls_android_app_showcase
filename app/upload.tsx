@@ -130,7 +130,6 @@ export default function UploadScreen() {
       });
 
       setSavedBook(book);
-      console.log("Book saved successfully:", book);
 
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
 
@@ -456,7 +455,6 @@ function BookMetadataExtractor({ src, onMetadataExtracted, onError }: any) {
   const { getMeta, totalLocations } = useReader();
   const [attempts, setAttempts] = useState(0);
   const MAX_ATTEMPTS = 5;
-  console.log("BookMetadataExtractor mounted", totalLocations);
   useEffect(() => {
     const timer = setTimeout(() => {
       try {

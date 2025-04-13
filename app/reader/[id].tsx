@@ -493,10 +493,10 @@ function BookReader() {
       if (!cfi) return;
 
       // Don't update progress if we're in the table of contents
-      if (isTOC) {
-        console.log("Skipping progress update for table of contents");
-        return;
-      }
+      // if (isTOC) {
+      //   console.log("Skipping progress update for table of contents");
+      //   return;
+      // }
 
       // Calculate progress percentage (0-100)
       let progressPercent = 0;
@@ -549,12 +549,12 @@ function BookReader() {
       }
 
       // Don't save if the progress hasn't changed significantly (reduces excessive saves)
-      const progressDifference = Math.abs(
-        progressPercent - lastSavedProgressRef.current
-      );
-      if (progressDifference < 1 && progressUpdatedRef.current) {
-        return;
-      }
+      // const progressDifference = Math.abs(
+      //   progressPercent - lastSavedProgressRef.current
+      // );
+      // if (progressDifference < 1 && progressUpdatedRef.current) {
+      //   return;
+      // }
 
       // Update local state with the calculated progress
       setReadingProgress(progressPercent);
