@@ -24,11 +24,17 @@ import {
   getBookFile,
   updateReadingProgress,
   getMetaFromAsyncStorage,
+  getReaderPreferences,
+  saveReaderPreferences,
 } from "../../utils/bookStorage";
 import {
   TableOfContents,
   Ref as TOCRef,
 } from "../../components/reader/TableOfContent";
+import {
+  ReaderSettings,
+  Ref as SettingsRef,
+} from "../../components/reader/ReaderSettings";
 
 // Simple header with back button and title
 function ReaderHeader({
@@ -36,11 +42,13 @@ function ReaderHeader({
   onBack,
   progress,
   onOpenTOC,
+  onOpenSettings,
 }: {
   title: string;
   onBack: () => void;
   progress: number;
   onOpenTOC: () => void;
+  onOpenSettings: () => void;
 }) {
   const { theme } = useTheme();
   return (
@@ -52,7 +60,10 @@ function ReaderHeader({
         {title}
       </Text>
       <View style={styles.headerActions}>
-        <TouchableOpacity onPress={onOpenTOC} style={styles.tocButton}>
+        <TouchableOpacity onPress={onOpenSettings} style={styles.headerButton}>
+          <Ionicons name="settings-outline" size={22} color={theme.text} />
+        </TouchableOpacity>
+        <TouchableOpacity onPress={onOpenTOC} style={styles.headerButton}>
           <Ionicons name="list-outline" size={22} color={theme.text} />
         </TouchableOpacity>
         <Text style={[styles.progressText, { color: theme.textSecondary }]}>
@@ -91,6 +102,7 @@ function BookReader() {
   const { width, height } = useWindowDimensions();
   const { theme } = useTheme();
   const tocRef = useRef<TOCRef>(null);
+  const settingsRef = useRef<SettingsRef>(null);
 
   // Add a ref to track if we have auto-navigated from TOC
   const hasAutoNavigatedRef = useRef(false);
@@ -116,6 +128,18 @@ function BookReader() {
 
   const { getCurrentLocation, goToLocation, totalLocations, key, toc } =
     useReader();
+
+  // Auto page turn state and timer
+  const [autoPageTurnEnabled, setAutoPageTurnEnabled] =
+    useState<boolean>(false);
+  const [autoPageInterval, setAutoPageInterval] = useState<number>(10000); // 10 seconds default
+  const autoPageTimerRef = useRef<NodeJS.Timeout | null>(null);
+
+  // Line height state
+  const [lineHeight, setLineHeight] = useState<number>(1.5);
+
+  // Search state
+  const [searchResults, setSearchResults] = useState<any[]>([]);
 
   // Function to handle navigation from the TOC
   const handleTOCNavigation = useCallback(
@@ -290,6 +314,188 @@ function BookReader() {
     [theme.background, theme.text]
   );
 
+  // Font size change handler
+  const handleChangeFontSize = useCallback(
+    (size: number) => {
+      try {
+        const rendition = key.current?.rendition;
+        if (rendition) {
+          // Update the font size in the reader
+          rendition.themes.fontSize(`${size}%`);
+          console.log(`Font size changed to ${size}%`);
+
+          // Save user preference
+          saveReaderPreferences(bookId, { fontSize: size }).catch((err) =>
+            console.error("Error saving font size preference:", err)
+          );
+        }
+      } catch (error) {
+        console.error("Error changing font size:", error);
+      }
+    },
+    [key, bookId]
+  );
+
+  // Font family change handler
+  const handleChangeFontFamily = useCallback(
+    (fontFamily: string) => {
+      try {
+        const rendition = key.current?.rendition;
+        if (rendition) {
+          let fontFamilyValue = "system-ui, -apple-system, sans-serif";
+
+          // Map the font family selection to CSS font family values
+          switch (fontFamily) {
+            case "serif":
+              fontFamilyValue = "Georgia, serif";
+              break;
+            case "sans-serif":
+              fontFamilyValue = "Arial, Helvetica, sans-serif";
+              break;
+            case "monospace":
+              fontFamilyValue = "Courier New, monospace";
+              break;
+            default:
+              fontFamilyValue = "system-ui, -apple-system, sans-serif";
+          }
+
+          // Update the font family in the reader
+          rendition.themes.font(fontFamilyValue);
+          console.log(
+            `Font family changed to ${fontFamily} (${fontFamilyValue})`
+          );
+
+          // Save user preference
+          saveReaderPreferences(bookId, { fontFamily }).catch((err) =>
+            console.error("Error saving font family preference:", err)
+          );
+        }
+      } catch (error) {
+        console.error("Error changing font family:", error);
+      }
+    },
+    [key, bookId]
+  );
+
+  // Line height handler
+  const handleChangeLineHeight = useCallback(
+    (newLineHeight: number) => {
+      try {
+        const rendition = key.current?.rendition;
+        if (rendition) {
+          // Update line height in the reader
+          rendition.themes.override("line-height", `${newLineHeight}`);
+          setLineHeight(newLineHeight);
+          console.log(`Line height changed to ${newLineHeight}`);
+
+          // Save user preference
+          saveReaderPreferences(bookId, { lineHeight: newLineHeight }).catch(
+            (err) => console.error("Error saving line height preference:", err)
+          );
+        }
+      } catch (error) {
+        console.error("Error changing line height:", error);
+      }
+    },
+    [key, bookId]
+  );
+
+  // Auto page turn handler
+  const handleToggleAutoPageTurn = useCallback(
+    (enabled: boolean, interval: number) => {
+      // Clear any existing timer
+      if (autoPageTimerRef.current) {
+        clearInterval(autoPageTimerRef.current);
+        autoPageTimerRef.current = null;
+      }
+
+      setAutoPageTurnEnabled(enabled);
+      setAutoPageInterval(interval);
+
+      if (enabled) {
+        console.log(`Auto page turn enabled with interval: ${interval}ms`);
+
+        // Start auto page turning
+        autoPageTimerRef.current = setInterval(() => {
+          try {
+            const rendition = key.current?.rendition;
+            if (rendition) {
+              // Move to the next page
+              rendition.next();
+            }
+          } catch (error) {
+            console.error("Error during auto page turn:", error);
+          }
+        }, interval);
+      } else {
+        console.log("Auto page turn disabled");
+      }
+
+      // Save user preferences
+      saveReaderPreferences(bookId, {
+        autoPageTurn: enabled,
+        autoPageInterval: interval,
+      }).catch((err) =>
+        console.error("Error saving auto page turn preferences:", err)
+      );
+
+      return () => {
+        if (autoPageTimerRef.current) {
+          clearInterval(autoPageTimerRef.current);
+        }
+      };
+    },
+    [key, bookId]
+  );
+
+  // Book search handler
+  const handleSearchBook = useCallback(
+    async (query: string): Promise<any[]> => {
+      try {
+        const rendition = key.current?.rendition;
+        if (!rendition || !query.trim()) {
+          return [];
+        }
+
+        console.log(`Searching book for: "${query}"`);
+
+        // Use the epub.js search function
+        const results = await rendition.book.search(query);
+
+        // Transform results to a more useful format
+        const formattedResults = results.map((result: any, index: number) => {
+          // Get the chapter/section name if available
+          let location = "Unknown location";
+          try {
+            const chapter = rendition.book.spine.get(result.cfi);
+            if (chapter && chapter.href) {
+              const section = tocData.find(
+                (item: any) => item.href && chapter.href.includes(item.href)
+              );
+              location = section ? section.label : `Section ${index + 1}`;
+            }
+          } catch (err) {
+            console.error("Error getting location for search result:", err);
+          }
+
+          return {
+            cfi: result.cfi,
+            excerpt: result.excerpt || `...${query}...`,
+            location,
+            index,
+          };
+        });
+
+        console.log(`Found ${formattedResults.length} results for "${query}"`);
+        return formattedResults;
+      } catch (error) {
+        console.error("Error searching book:", error);
+        return [];
+      }
+    },
+    [key, tocData]
+  );
+
   // Load book metadata and last location when reader is ready
   const handleReady = async () => {
     try {
@@ -310,6 +516,90 @@ function BookReader() {
           setReadingProgress(bookMeta.readingProgress);
           lastSavedProgressRef.current = bookMeta.readingProgress;
           progressUpdatedRef.current = true;
+        }
+
+        // Load saved reader preferences
+        try {
+          const preferences = await getReaderPreferences(bookId);
+          if (preferences) {
+            console.log("Loaded reader preferences:", preferences);
+            const rendition = key.current?.rendition;
+
+            // Apply font size if saved
+            if (preferences.fontSize && rendition) {
+              rendition.themes.fontSize(`${preferences.fontSize}%`);
+              console.log(`Applied saved font size: ${preferences.fontSize}%`);
+            }
+
+            // Apply font family if saved
+            if (preferences.fontFamily && rendition) {
+              let fontFamilyValue = "system-ui, -apple-system, sans-serif";
+
+              // Map the font family selection to CSS font family values
+              switch (preferences.fontFamily) {
+                case "serif":
+                  fontFamilyValue = "Georgia, serif";
+                  break;
+                case "sans-serif":
+                  fontFamilyValue = "Arial, Helvetica, sans-serif";
+                  break;
+                case "monospace":
+                  fontFamilyValue = "Courier New, monospace";
+                  break;
+                default:
+                  fontFamilyValue = "system-ui, -apple-system, sans-serif";
+              }
+
+              rendition.themes.font(fontFamilyValue);
+              console.log(
+                `Applied saved font family: ${preferences.fontFamily}`
+              );
+            }
+
+            // Apply line height if saved
+            if (preferences.lineHeight && rendition) {
+              rendition.themes.override(
+                "line-height",
+                `${preferences.lineHeight}`
+              );
+              setLineHeight(preferences.lineHeight);
+              console.log(
+                `Applied saved line height: ${preferences.lineHeight}`
+              );
+            }
+
+            // Apply auto page turn settings if saved
+            if (preferences.autoPageTurn !== undefined) {
+              setAutoPageTurnEnabled(preferences.autoPageTurn);
+
+              if (preferences.autoPageInterval) {
+                setAutoPageInterval(preferences.autoPageInterval);
+              }
+
+              // If auto page turn was enabled, start the timer
+              if (preferences.autoPageTurn && preferences.autoPageInterval) {
+                if (autoPageTimerRef.current) {
+                  clearInterval(autoPageTimerRef.current);
+                }
+
+                autoPageTimerRef.current = setInterval(() => {
+                  try {
+                    if (rendition) {
+                      rendition.next();
+                    }
+                  } catch (error) {
+                    console.error("Error during auto page turn:", error);
+                  }
+                }, preferences.autoPageInterval);
+
+                console.log(
+                  `Restored auto page turn with interval: ${preferences.autoPageInterval}ms`
+                );
+              }
+            }
+          }
+        } catch (error) {
+          console.error("Error loading reader preferences:", error);
         }
 
         // Restore last reading location if available
@@ -771,6 +1061,11 @@ function BookReader() {
             tocRef.current.present();
           }
         }}
+        onOpenSettings={() => {
+          if (settingsRef.current) {
+            settingsRef.current.present();
+          }
+        }}
       />
 
       <View style={styles.readerContainer}>
@@ -796,6 +1091,30 @@ function BookReader() {
         }}
         onClose={() => {
           tocRef.current?.dismiss();
+        }}
+      />
+
+      <ReaderSettings
+        ref={settingsRef}
+        onClose={() => {
+          settingsRef.current?.dismiss();
+        }}
+        onChangeFontSize={handleChangeFontSize}
+        onChangeFont={handleChangeFontFamily}
+        onChangeLineHeight={handleChangeLineHeight}
+        onToggleAutoPageTurn={handleToggleAutoPageTurn}
+        onSearchBook={handleSearchBook}
+        onNavigateToSearchResult={(cfi) => {
+          // Close the settings panel first
+          settingsRef.current?.dismiss();
+
+          // Navigate to the search result
+          if (cfi) {
+            setTimeout(() => {
+              goToLocation(cfi);
+              console.log(`Navigated to search result at ${cfi}`);
+            }, 300); // Short delay to allow modal to close
+          }
         }}
       />
     </View>
@@ -853,7 +1172,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
   },
-  tocButton: {
+  headerButton: {
     padding: 8,
   },
   progressContainer: {

@@ -60,6 +60,13 @@ export interface BookMetadata {
   totalPages?: number;
   currentPage?: number;
   cfi?: string;
+  readerPreferences?: {
+    fontSize?: number;
+    fontFamily?: string;
+    lineHeight?: number;
+    autoPageTurn?: boolean;
+    autoPageInterval?: number;
+  };
 }
 
 export interface Metadata {

@@ -304,3 +304,86 @@ export const getMetaFromAsyncStorage = async (
 
   return book || null;
 };
+
+// Save reader preferences for a book
+export const saveReaderPreferences = async (
+  bookId: string,
+  preferences: {
+    fontSize?: number;
+    fontFamily?: string;
+    lineHeight?: number;
+    autoPageTurn?: boolean;
+    autoPageInterval?: number;
+  }
+): Promise<void> => {
+  try {
+    const libraryJson = await AsyncStorage.getItem("bookLibrary");
+    if (!libraryJson) return;
+
+    const library = JSON.parse(libraryJson);
+    const bookIndex = library.books.findIndex(
+      (book: BookMetadata) => book.id === bookId
+    );
+
+    if (bookIndex === -1) return;
+
+    // Initialize readerPreferences if it doesn't exist
+    if (!library.books[bookIndex].readerPreferences) {
+      library.books[bookIndex].readerPreferences = {};
+    }
+
+    // Update each preference if provided
+    if (preferences.fontSize !== undefined) {
+      library.books[bookIndex].readerPreferences.fontSize =
+        preferences.fontSize;
+    }
+    if (preferences.fontFamily !== undefined) {
+      library.books[bookIndex].readerPreferences.fontFamily =
+        preferences.fontFamily;
+    }
+    if (preferences.lineHeight !== undefined) {
+      library.books[bookIndex].readerPreferences.lineHeight =
+        preferences.lineHeight;
+    }
+    if (preferences.autoPageTurn !== undefined) {
+      library.books[bookIndex].readerPreferences.autoPageTurn =
+        preferences.autoPageTurn;
+    }
+    if (preferences.autoPageInterval !== undefined) {
+      library.books[bookIndex].readerPreferences.autoPageInterval =
+        preferences.autoPageInterval;
+    }
+
+    await AsyncStorage.setItem("bookLibrary", JSON.stringify(library));
+    console.log(
+      `Saved reader preferences for book ${bookId}:`,
+      library.books[bookIndex].readerPreferences
+    );
+  } catch (error) {
+    console.error("Error saving reader preferences:", error);
+  }
+};
+
+// Get reader preferences for a book
+export const getReaderPreferences = async (
+  bookId: string
+): Promise<{
+  fontSize?: number;
+  fontFamily?: string;
+  lineHeight?: number;
+  autoPageTurn?: boolean;
+  autoPageInterval?: number;
+} | null> => {
+  try {
+    const book = await getBookById(bookId);
+    if (!book) return null;
+
+    return book.readerPreferences || null;
+  } catch (error) {
+    console.error(
+      `Error getting reader preferences for book ${bookId}:`,
+      error
+    );
+    return null;
+  }
+};
