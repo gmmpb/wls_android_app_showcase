@@ -7,7 +7,13 @@ import React, {
 } from "react";
 import { View, StyleSheet, useWindowDimensions } from "react-native";
 import { useLocalSearchParams, router } from "expo-router";
-import { Reader, useReader } from "@epubjs-react-native/core";
+import {
+  Reader,
+  useReader,
+  Section as OriginalSectionType,
+  Toc,
+  Location,
+} from "@epubjs-react-native/core";
 import { useFileSystem } from "@epubjs-react-native/expo-file-system";
 import { useTheme } from "../../context/ThemeContext";
 import {
@@ -20,6 +26,31 @@ import LoadingDisplay from "./LoadingDisplay";
 import ErrorDisplay from "./ErrorDisplay";
 import ReaderHeader from "./ReaderHeader";
 
+// Define an interface for the key.current object
+interface RenditionRef {
+  rendition: {
+    book: {
+      spine: Array<{
+        href?: string;
+        [key: string]: any;
+      }>;
+      [key: string]: any;
+    };
+    [key: string]: any;
+  };
+  [key: string]: any;
+}
+
+// Extend the original Section type with additional properties we need
+interface SectionType
+  extends Omit<OriginalSectionType, "id" | "label" | "href" | "subitems"> {
+  id: string;
+  label: string;
+  href: string;
+  cfi?: string;
+  subitems: SectionType[];
+}
+
 export default function ReaderContent() {
   const { id } = useLocalSearchParams();
   const bookId = Array.isArray(id) ? id[0] : id;
@@ -28,12 +59,12 @@ export default function ReaderContent() {
   const tocRef = useRef<TOCRef>(null);
 
   // Create a ref for the Reader component
-  const readerRef = useRef(null);
+  const readerRef = useRef<any>(null);
 
   // Add a ref to track if we have auto-navigated from TOC
   const hasAutoNavigatedRef = useRef(false);
   // Store TOC data in state once we get it
-  const [tocData, setTocData] = useState([]);
+  const [tocData, setTocData] = useState<SectionType[]>([]);
 
   // Basic state
   const [bookTitle, setBookTitle] = useState("Book Reader");
@@ -46,7 +77,7 @@ export default function ReaderContent() {
   // Flag to track if progress has been updated from location change
   const progressUpdatedRef = useRef(false);
   // Store the latest location to ensure we can save it when the component unmounts
-  const latestLocationRef = useRef<any>(null);
+  const latestLocationRef = useRef<Location | null>(null);
   // Ref to track if a save operation is in progress to prevent race conditions
   const savingInProgressRef = useRef(false);
   // Ref to store the last saved progress to prevent unnecessary/duplicate saves
@@ -59,7 +90,7 @@ export default function ReaderContent() {
 
   // Get a spine item CFI from TOC href
   const getCfiFromHref = useCallback(
-    (href) => {
+    (href: string | undefined) => {
       // If it's already a CFI, return it
       if (href && href.includes("epubcfi(")) {
         return href;
@@ -68,17 +99,23 @@ export default function ReaderContent() {
       // We need to render proper CFI for navigation since goToLocation only accepts CFI
       try {
         // Use the internal EPUB.js methods to generate a CFI from href
-        const rendition = key.current?.rendition;
+        const rendition = (key as unknown as { current?: RenditionRef }).current
+          ?.rendition;
         if (rendition) {
           // Clean the href (remove leading slash if present)
           const cleanHref = href?.startsWith("/") ? href.substring(1) : href;
 
           // Generate a proper CFI using spine position
-          const spineItem = rendition.book.spine.find((item) => {
-            // Match the spine item's href with the TOC href
-            const itemUrl = item.href || "";
-            return itemUrl === cleanHref || cleanHref?.includes(itemUrl);
-          });
+          const spineItem = rendition.book.spine.find(
+            (item: { href?: string }) => {
+              // Match the spine item's href with the TOC href
+              const itemUrl = item.href || "";
+              return (
+                itemUrl === cleanHref ||
+                (cleanHref && cleanHref.includes(itemUrl))
+              );
+            }
+          );
 
           if (spineItem) {
             // Get the spine position
@@ -101,7 +138,7 @@ export default function ReaderContent() {
 
   // Function to navigate to TOC sections using only CFI
   const navigateToTocSection = useCallback(
-    (section) => {
+    (section: SectionType) => {
       console.log(
         "Navigating to TOC section:",
         JSON.stringify(section, null, 2)
@@ -531,7 +568,7 @@ export default function ReaderContent() {
   // Store the TOC data when it becomes available
   useEffect(() => {
     if (toc && toc.length > 0) {
-      setTocData(toc);
+      setTocData(toc as SectionType[]);
     }
   }, [toc]);
 
@@ -555,9 +592,11 @@ export default function ReaderContent() {
           currentLoc.end?.href?.toLowerCase().includes("toc") ||
           currentLoc.end?.href?.toLowerCase().includes("contents");
 
+        // Add a custom check for atStart since percentage is not a standard property
         const isAtStart =
-          currentLoc.atStart === true ||
-          (currentLoc.percentage !== undefined && currentLoc.percentage < 0.01);
+          (currentLoc as any).atStart === true ||
+          ((currentLoc as any).percentage !== undefined &&
+            (currentLoc as any).percentage < 0.01);
 
         if (isTOC && isAtStart) {
           console.log("Auto-navigating from TOC page to first chapter");
@@ -697,7 +736,6 @@ export default function ReaderContent() {
       <View style={styles.readerContainer}>
         {bookPath && (
           <Reader
-            ref={readerRef}
             src={bookPath}
             width={width}
             height={height * 0.85}
@@ -707,9 +745,6 @@ export default function ReaderContent() {
             onLocationChange={handleLocationChange}
             enableSwipe={true}
             enableSelection={true}
-            renderLoadingFileComponent={() => (
-              <LoadingDisplay message="Loading book..." />
-            )}
             waitForLocationsReady={true}
           />
         )}
